@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Make GIF</title>
+    </head>
+    <body>
+        <header>
+            <h1>Make GIF Animations</h1>
+        </header>
+        <main>
+            <p>My GIF Animations:</p>
+            <table>
+                {% for img in anim %}
+                <tr>
+                <td>{{ img.pk }}</td>
+                <td> {{img.url}}</td>
+                <td> {{img.path}}</td>
+                {% load static %}
+                <img src="{% get_media_prefix %}{{img.pk}}/out.gif">
+                </tr>
+                {% endfor %}
+            </table>
+            <hr>
+        </main>
+    </body>
+</html>
+
