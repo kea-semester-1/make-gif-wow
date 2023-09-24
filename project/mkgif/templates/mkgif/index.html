@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Make GIF</title>
        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/holiday.css@0.9.8" />
+       <script src="https://unpkg.com/htmx.org@1.9.3" integrity="sha384-lVb3Rd/Ca0AxaoZg5sACe8FJKF0tnUgR2Kd7ehUOG5GCcROv5uBIZsOqovBAcWua" crossorigin="anonymous"></script>
 
     </head>
     <body>
@@ -25,27 +26,58 @@
 </nav>
 
         <main>
-            <p>My GIF Animations:</p>
-            <table>
-                {% for anim in anims %}
-                <tr>
-     {% load static %}
-  1                 <img src="{% get_media_prefix %}{{anim.pk}}/out.gif">                  <td>{{ anim.pk }}</td>
-                <td><a href="{% url 'mkgif:details' anim.pk %}">{{ anim.name }}</a></td>
-                </tr>
-                {% endfor %}
-            </table>
+            <div>
+                <p>My GIF Animations:</p>
+            </div>
+            {% for anim in anims %}
+            <div>
+                <div>
+                    <td>{{ anim.pk }}</td>
+                    <td><a href="{% url 'mkgif:details' anim.pk %}">{{ anim.name }}</a></td>
+                </div>
+                           
+                <span
+                data-hx-delete="{% url 'mkgif:gif_pk' anim.pk %}"
+                data-hx-trigger="click"
+                data-hx-target="body"
+            >Delete</span>
+
+            <span
+            data-hx-post="{% url 'mkgif:make_gif' anim.pk %}"
+            data-hx-trigger="click"
+            data-hx-target="body"
+        >ruuuuuun</span>
+
+        <div>
+             {% load static %}
+                <img src="{% get_media_prefix %}{{anim.pk}}/out.gif">                  
+        </div>
+            </div>
+    
+  
+
+        {% endfor %}
+   
             <hr>
             <form action="{% url 'mkgif:index' %}" method="POST" enctype="multipart/form-data">
                 <fieldset>
                     <legend><label>Add New GIF Animation</label></legend>
                     {% csrf_token %}
                     <input name="name" type="text" placeholder="Animation name">
+                    <input name="scale" type="number" placeholder="Animation scale">
+                    <input name="framerate" type="number" placeholder="Animation framerate">
                     <input name="imgs" type="file" multiple>
                     <button>Submit</button>
                 </fieldset>
             </form>
         </main>
+        
+
+        <script>
+            document.body.addEventListener('htmx:configRequest', (event) => {
+                event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+            })
+        </script>
     </body>
 </html>
 

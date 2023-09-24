@@ -145,4 +145,5 @@ RQ_QUEUES = {
     }
 }
 
+DATA_UPLOAD_MAX_NUMBER_FILES = 5000  # or any other number you prefer
 
