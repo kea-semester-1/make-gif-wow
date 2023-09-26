@@ -29,6 +29,12 @@ def details(request, pk):
 @login_required
 def gifs(request, pk):
     anim = get_object_or_404(Animation, pk=pk)
+
+    # Delete the associated Image objects and their physical files
+    for image in anim.image_set.all():
+        image.delete(anim.pk)
+
+    # Delete the Animation object
     anim.delete()
 
     anims = Animation.objects.all()
@@ -41,11 +47,12 @@ def make_gif(request, pk):
     anim = get_object_or_404(Animation, pk=pk)
 
     name = request.POST.get("name", None)
+    framerate = request.POST["framerate"]
+    scale = request.POST["scale"]
+
     if name:
         Animation.objects.filter(pk=pk).update(name=name)
-    anim.enqueue(
-        {"framerate": request.POST["framerate"], "scale": request.POST["scale"]}
-    )
+    anim.enqueue(params={"framerate": framerate, "scale": scale})
     anims = Animation.objects.all()
     context = {"anims": anims}
     return render(request, "mkgif/index.html", context)

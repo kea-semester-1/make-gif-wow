@@ -42,12 +42,6 @@
                 data-hx-target="body"
             >Delete</span>
 
-            <span
-            data-hx-post="{% url 'mkgif:make_gif' anim.pk %}"
-            data-hx-trigger="click"
-            data-hx-target="body"
-        >ruuuuuun</span>
-
         <div>
              {% load static %}
                 <img src="{% get_media_prefix %}{{anim.pk}}/out.gif">                  
