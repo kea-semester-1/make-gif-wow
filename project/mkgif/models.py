@@ -8,9 +8,17 @@ import shutil
 
 
 class Animation(models.Model):
-    
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
+    type = models.TextField(max_length=5)
+    
+    PROCESSING = 'processing'
+    COMPLETE = 'complete'
+    STATUS_CHOICES = [
+        (PROCESSING, 'Processing'),
+        (COMPLETE, 'Complete'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PROCESSING)
 
     def enqueue(self, params):
         django_rq.enqueue(

@@ -1,26 +1,48 @@
 from .models import Animation, Image
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, reverse
 from django.contrib.auth.decorators import login_required
+from mkgif.forms import AnimationForm
+from django.http import HttpResponseRedirect
+
+
+def index(request):
+    return HttpResponseRedirect(reverse("mkgif:animation"))
 
 
 @login_required
-def index(request):
+def animation(request):
+    animation_form = None
     if request.method == "POST":
-        anim = Animation.objects.create(name=request.POST["name"], user=request.user)
-        for img in request.FILES.getlist("imgs"):
-            Image.objects.create(animation=anim, image=img)
-        anim.enqueue(
-            {"framerate": request.POST["framerate"], "scale": request.POST["scale"]}
-        )
+        animation_form = AnimationForm(request.POST)
+        if animation_form.is_valid():
+            anim = animation_form.save(commit=False)
+            anim.user = request.user
+            anim.type = animation_form.cleaned_data["select_type_to"]
+            anim.save()
+            for img in request.FILES.getlist("imgs"):
+                Image.objects.create(animation=anim, image=img)
 
-    anims = Animation.objects.all().filter(user=request.user)
-    context = {"anims": anims}
+            anim.enqueue(
+                {
+                    "framerate": animation_form.cleaned_data["framerate"],
+                    "scale": animation_form.cleaned_data["scale"],
+                    "from_format": animation_form.cleaned_data["select_type_from"],
+                    "to_format": animation_form.cleaned_data["select_type_to"],
+                }
+            )
+            animation_form = None
+
+    if not animation_form:
+        animation_form = AnimationForm()
+
+    anims = Animation.objects.filter(user=request.user)
+    context = {"anims": anims, "animation_form": animation_form}
     return render(request, "mkgif/index.html", context)
 
 
 @login_required
 def details(request, pk):
-    anim = get_object_or_404(Animation, pk=pk)
+    anim = get_object_or_404(Animation, pk=pk, user=request.user)
     images = Image.objects.filter(animation=pk)
     context = {"anim": anim, "images": images}
     return render(request, "mkgif/details.html", context)

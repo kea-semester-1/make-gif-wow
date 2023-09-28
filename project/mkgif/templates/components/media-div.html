@@ -1,0 +1,23 @@
+<div>
+    {% load static %}
+    
+    {% if anim.type == "gif" or anim.type == "png" %}
+        <!-- For Images -->
+        <img src="{% get_media_prefix %}{{anim.pk}}/out.{{anim.type}}">
+    
+    {% elif anim.type == "mp4" %}
+        <!-- For Videos -->
+        <video width="320" height="240" controls>
+            <source src="{% get_media_prefix %}{{anim.pk}}/out.{{anim.type}}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    
+    {% elif anim.type == "mp3" %}
+        <!-- For Music -->
+        <audio controls>
+            <source src="{% get_media_prefix %}{{anim.pk}}/out.{{anim.type}}" type="audio/mpeg">
+            Your browser does not support the audio tag.
+        </audio>
+    
+    {% endif %}
+</div>

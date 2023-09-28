@@ -8,22 +8,11 @@
        <script src="https://unpkg.com/htmx.org@1.9.3" integrity="sha384-lVb3Rd/Ca0AxaoZg5sACe8FJKF0tnUgR2Kd7ehUOG5GCcROv5uBIZsOqovBAcWua" crossorigin="anonymous"></script>
 
     </head>
-    <body>
+    <body hx-boost="true">
         <header>
             <h1>Make GIF Animations</h1>
         </header>
-        <nav>
-    <ul>
-        <li><a href="{% url 'mkgif:index' %}">Home</a></li>
-        <li>
-            <span>{{ user }}</span>
-            <ul>
-                <li><a href="{% url 'logout' %}">Logout</a></li>
-            </ul>
-            </span>
-        </li>
-    </ul>
-</nav>
+        {%include 'components/navbar.html'%}
 
         <main>
             <div>
@@ -36,16 +25,14 @@
                     <td><a href="{% url 'mkgif:details' anim.pk %}">{{ anim.name }}</a></td>
                 </div>
                            
-                <span
+                <button
                 data-hx-delete="{% url 'mkgif:gif_pk' anim.pk %}"
                 data-hx-trigger="click"
                 data-hx-target="body"
-            >Delete</span>
+            >Delete</button>
 
-        <div>
-             {% load static %}
-                <img src="{% get_media_prefix %}{{anim.pk}}/out.gif">                  
-        </div>
+            {%include 'components/media-div.html' with anim=anim%}
+            
             </div>
     
   
@@ -53,13 +40,32 @@
         {% endfor %}
    
             <hr>
-            <form action="{% url 'mkgif:index' %}" method="POST" enctype="multipart/form-data">
+            <form action="{% url 'mkgif:animation' %}" method="POST" enctype="multipart/form-data">
                 <fieldset>
                     <legend><label>Add New GIF Animation</label></legend>
                     {% csrf_token %}
-                    <input name="name" type="text" placeholder="Animation name">
-                    <input name="scale" type="number" placeholder="Animation scale">
-                    <input name="framerate" type="number" placeholder="Animation framerate">
+
+                    <div>
+                        <p>Choose a format:</p>
+                        <label for="select_type_from">From:</label>
+                        <select id="select_type_from" name="select_type_from" type="select" required>
+                            <option value="mp4">mp4</option>
+                            <option value="gif">gif</option>
+                            <option value="png">png</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="select_type_to">To:</label>
+                        <select id="select_type_to" name="select_type_to" type="select" required>
+                            <option value="mp4">mp4</option>
+                            <option value="gif">gif</option>
+                            <option value="png">png</option>
+                        </select>
+                    </div>
+                    <br>
+                    <input name="name" type="text" placeholder="Animation name" required>
+                    <input name="scale" type="number" placeholder="Animation scale" required>
+                    <input name="framerate" type="number" placeholder="Animation framerate" required>
                     <input name="imgs" type="file" multiple>
                     <button>Submit</button>
                 </fieldset>

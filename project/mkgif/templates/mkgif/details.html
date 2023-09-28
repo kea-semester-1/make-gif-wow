@@ -4,17 +4,18 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Make GIF</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/holiday.css@0.9.8" />
+        <script src="https://unpkg.com/htmx.org@1.9.3" integrity="sha384-lVb3Rd/Ca0AxaoZg5sACe8FJKF0tnUgR2Kd7ehUOG5GCcROv5uBIZsOqovBAcWua" crossorigin="anonymous"></script>
     </head>
-    <body>
+    <body hx-boost="true">
+        <legend><h1>Details for gif {{anim.pk}}</h1></legend>
+        {%include 'components/navbar.html'%}
         <main>         
         <header>
-            <legend><h1>Make GIF Animations</h1></legend>
         </header>
             <div>    
             {% load static %}
-               <img src="{% get_media_prefix %}{{anim.pk}}/out.gif">                  
-               <td>{{ anim.pk }}</td>
-               <td><a href="{% url 'mkgif:details' anim.pk %}">{{ anim.name }}</a></td>
+            {%include 'components/media-div.html' with anim=anim%}
            </div>
 
            <div>
@@ -22,8 +23,9 @@
             <div>
                 <form action="{% url 'mkgif:make_gif' pk=anim.pk %}" method="POST" enctype="multipart/form-data">
                     <fieldset>
-                        <legend><label>Add New GIF Animation</label></legend>
+                        <legend><label>Edit gif Animation</label></legend>
                         {% csrf_token %}
+                        <input type="select" placeholder="Type" required>
                         <input name="name" type="text" placeholder="Animation name">
                         <input name="scale" type="number" placeholder="Animation scale">
                         <input name="framerate" type="number" placeholder="Animation framerate">
