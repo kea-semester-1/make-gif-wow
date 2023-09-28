@@ -3,6 +3,7 @@ from django.shortcuts import render, get_object_or_404, reverse
 from django.contrib.auth.decorators import login_required
 from mkgif.forms import AnimationForm
 from django.http import HttpResponseRedirect
+from mkgif.utils import get_job_status
 
 
 def index(request):
@@ -78,3 +79,19 @@ def make_gif(request, pk):
     anims = Animation.objects.all()
     context = {"anims": anims}
     return render(request, "mkgif/index.html", context)
+
+
+from django.http import JsonResponse
+
+
+@login_required
+def check_status(request, pk):
+    animation = Animation.objects.get(pk=pk)
+    status = get_job_status(animation.job_id)
+    print(animation.status)
+    print(status)
+    if status == "finished" and animation.status != "complete":
+        animation.status = "complete"
+        animation.save()
+
+    return JsonResponse({"status": animation.status})

@@ -19,6 +19,9 @@
                 <p>My GIF Animations:</p>
             </div>
             {% for anim in anims %}
+
+          
+            <span class="status">{{ anim.status }}</span>
             <div>
                 <div>
                     <td>{{ anim.pk }}</td>
@@ -30,8 +33,11 @@
                 data-hx-trigger="click"
                 data-hx-target="body"
             >Delete</button>
-
+            {%if anim.status == "complete"%}
             {%include 'components/media-div.html' with anim=anim%}
+            {% else %}
+            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b9/Youtube_loading_symbol_1_(wobbly).gif">
+            {%endif%}
             
             </div>
     
@@ -78,6 +84,31 @@
                 event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
             })
         </script>
+
+<script>
+function checkJobStatus(animId) {
+    fetch(`/check_status/${animId}/`)
+        .then(response => response.json())
+        .then(data => {
+            const status = data.status;
+            if (status === "complete") {
+                location.reload();
+                clearInterval(intervalIdMap[animId]);
+            }
+        })
+        .catch(error => console.error("Error fetching job status:", error));
+}
+window.intervalIdMap = window.intervalIdMap || {};
+
+{% for anim in anims %}
+    // Only start the interval if the status is "processing"
+    if ("{{ anim.status }}" === "processing") {
+        intervalIdMap[{{ anim.pk }}] = setInterval(() => checkJobStatus({{ anim.pk }}), 1000);
+    }
+{% endfor %}
+
+    </script>
+    
     </body>
 </html>
 

@@ -11,23 +11,26 @@ class Animation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     type = models.TextField(max_length=5)
-    
-    PROCESSING = 'processing'
-    COMPLETE = 'complete'
+
+    PROCESSING = "processing"
+    COMPLETE = "complete"
     STATUS_CHOICES = [
-        (PROCESSING, 'Processing'),
-        (COMPLETE, 'Complete'),
+        (PROCESSING, "Processing"),
+        (COMPLETE, "Complete"),
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PROCESSING)
+    job_id = models.CharField(max_length=10)
 
     def enqueue(self, params):
-        django_rq.enqueue(
+        job = django_rq.enqueue(
             mk_gif_ffmpeg,
             {
                 "pk": self.pk,
                 "params": params,
             },
         )
+        self.job_id = job.id
+        self.save()
 
 
 class Image(models.Model):

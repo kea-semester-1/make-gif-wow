@@ -1,11 +1,9 @@
 import os
 from django.conf import settings
 import shlex
-import glob
-import subprocess
 
-from django.core.files import File
-from django.core.files.temp import NamedTemporaryFile
+from django_rq import get_queue
+from rq.job import Job
 
 
 def mk_gif_ffmpeg(params):
@@ -18,3 +16,9 @@ def mk_gif_ffmpeg(params):
     print(path, params)
     print(command)
     os.system(command)
+
+
+def get_job_status(job_id):
+    queue = get_queue()  
+    job = Job.fetch(job_id, connection=queue.connection)
+    return job.get_status()

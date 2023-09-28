@@ -10,4 +10,5 @@ urlpatterns = [
     path("details/<int:pk>/", views.details, name="details"),
     path("gifs/<int:pk>/", views.gifs, name="gif_pk"),
     path("make_gif/<int:pk>/", views.make_gif, name="make_gif"),
+    path("check_status/<int:pk>/", views.check_status, name="check_status"),
 ]
