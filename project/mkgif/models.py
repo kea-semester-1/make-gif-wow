@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 import django_rq
-from .utils import mk_gif_ffmpeg
+from .utils import mk_gif_ffmpeg, mk_gif_ffmpeg_one
 import os
 import shutil
 
@@ -24,6 +24,17 @@ class Animation(models.Model):
     def enqueue(self, params):
         job = django_rq.enqueue(
             mk_gif_ffmpeg,
+            {
+                "pk": self.pk,
+                "params": params,
+            },
+        )
+        self.job_id = job.id
+        self.save()
+
+    def enqueue_one(self, params):
+        job = django_rq.enqueue(
+            mk_gif_ffmpeg_one,
             {
                 "pk": self.pk,
                 "params": params,

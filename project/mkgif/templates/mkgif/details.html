@@ -25,7 +25,23 @@
                     <fieldset>
                         <legend><label>Edit gif Animation</label></legend>
                         {% csrf_token %}
-                        <input type="select" placeholder="Type" required>
+                        <div>
+                            <p>Choose a format:</p>
+                            <label for="select_type_from">From:</label>
+                            <select id="select_type_from" name="select_type_from" type="select" required>
+                                <option value="mp4">mp4</option>
+                                <option value="gif">gif</option>
+                                <option value="png">png</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="select_type_to">To:</label>
+                            <select id="select_type_to" name="select_type_to" type="select" required>
+                                <option value="mp4">mp4</option>
+                                <option value="gif">gif</option>
+                                <option value="png">png</option>
+                            </select>
+                        </div>
                         <input name="name" type="text" placeholder="Animation name">
                         <input name="scale" type="number" placeholder="Animation scale">
                         <input name="framerate" type="number" placeholder="Animation framerate">

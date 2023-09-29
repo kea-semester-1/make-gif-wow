@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from mkgif.forms import AnimationForm
 from django.http import HttpResponseRedirect
 from mkgif.utils import get_job_status
+from django.http import JsonResponse
 
 
 def index(request):
@@ -18,20 +19,37 @@ def animation(request):
         if animation_form.is_valid():
             anim = animation_form.save(commit=False)
             anim.user = request.user
-            anim.type = animation_form.cleaned_data["select_type_to"]
-            anim.save()
-            for img in request.FILES.getlist("imgs"):
+            if len(request.FILES.getlist("imgs")) > 1:
+                anim.type = animation_form.cleaned_data["select_type_to"]
+                anim.save()
+                for img in request.FILES.getlist("imgs"):
+                    Image.objects.create(animation=anim, image=img)
+                anim.enqueue(
+                    {
+                        "framerate": animation_form.cleaned_data["framerate"],
+                        "scale": animation_form.cleaned_data["scale"],
+                        "from_format": animation_form.cleaned_data["select_type_from"],
+                        "to_format": animation_form.cleaned_data["select_type_to"],
+                        "name": animation_form.cleaned_data["name"],
+                    }
+                )
+                animation_form = None
+            else:
+                anim.type = animation_form.cleaned_data["select_type_to"]
+                anim.save()
+                img = request.FILES.getlist("imgs")[0]
                 Image.objects.create(animation=anim, image=img)
-
-            anim.enqueue(
-                {
-                    "framerate": animation_form.cleaned_data["framerate"],
-                    "scale": animation_form.cleaned_data["scale"],
-                    "from_format": animation_form.cleaned_data["select_type_from"],
-                    "to_format": animation_form.cleaned_data["select_type_to"],
-                }
-            )
-            animation_form = None
+                anim.enqueue_one(
+                    {
+                        "framerate": animation_form.cleaned_data["framerate"],
+                        "scale": animation_form.cleaned_data["scale"],
+                        "from_format": animation_form.cleaned_data["select_type_from"],
+                        "to_format": animation_form.cleaned_data["select_type_to"],
+                        "name": animation_form.cleaned_data["name"],
+                        "name_from": img.name,
+                    }
+                )
+                animation_form = None
 
     if not animation_form:
         animation_form = AnimationForm()
@@ -72,16 +90,24 @@ def make_gif(request, pk):
     name = request.POST.get("name", None)
     framerate = request.POST["framerate"]
     scale = request.POST["scale"]
+    from_format = request.POST["select_type_from"]
+    to_format = request.POST["select_type_to"]
 
-    if name:
-        Animation.objects.filter(pk=pk).update(name=name)
-    anim.enqueue(params={"framerate": framerate, "scale": scale})
+    print(name)
+    print(pk)
+    Animation.objects.filter(pk=pk).update(name=name)
+    anim.enqueue(
+        params={
+            "framerate": framerate,
+            "scale": scale,
+            "from_format": from_format,
+            "to_format": to_format,
+            "name": name,
+        }
+    )
     anims = Animation.objects.all()
     context = {"anims": anims}
     return render(request, "mkgif/index.html", context)
-
-
-from django.http import JsonResponse
 
 
 @login_required
