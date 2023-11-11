@@ -7,8 +7,11 @@ app_name = "mkgif"
 urlpatterns = [
     path("", views.index, name="index"),
     path("animation/", views.animation, name="animation"),
-    path("details/<int:pk>/", views.details, name="details"),
-    path("gifs/<int:pk>/", views.gifs, name="gif_pk"),
-    path("make_gif/<int:pk>/", views.make_gif, name="make_gif"),
-    path("check_status/<int:pk>/", views.check_status, name="check_status"),
+    path("animation/<int:pk>/", views.animation_details, name="animation_details"),
+    path(
+        "animation-detail/<int:pk>/",
+        views.animation_details_list,
+        name="animation_detail_list",
+    ),
+    path("status/<int:pk>/", views.status, name="status"),
 ]

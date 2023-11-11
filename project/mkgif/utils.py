@@ -13,9 +13,21 @@ def mk_gif_ffmpeg(params):
     from_format = params["params"]["from_format"]
     to_format = params["params"]["to_format"]
     name = params["params"]["name"]
-    print(name)
-    command = f'ffmpeg -framerate {framerate} -pattern_type glob -y -i "{path}/*.{from_format}" -r 15 -vf scale={scale}:-1 {path}/{name}.{to_format}'
-    print(path, params)
+    single_filename = params["params"].get("single_filename")
+
+    if single_filename:
+        # Use the single filename passed from the view
+        print(single_filename)
+        single_filename = single_filename
+        input_str = f'-y -i "{path}/{single_filename}"'
+    else:
+        input_str = (
+            f'-framerate {framerate} -pattern_type glob -y -i "{path}/*.{from_format}"'
+        )
+
+    command = (
+        f'ffmpeg {input_str} -r 15 -vf scale={scale}:-1 "{path}/{name}.{to_format}"'
+    )
     print(command)
     os.system(command)
 

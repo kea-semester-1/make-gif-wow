@@ -18,18 +18,49 @@
             <div>
                 <p>My GIF Animations:</p>
             </div>
-            {% for anim in anims %}
 
-          
+            <div>
+                <form action="{% url 'mkgif:animation' %}" method="POST" enctype="multipart/form-data">
+                    <fieldset>
+                        <legend><label>Add New GIF Animation</label></legend>
+                        {% csrf_token %}
+    
+                        <div>
+                            <p>Choose a format:</p>
+                            <label for="select_type_from">From:</label>
+                            <select id="select_type_from" name="select_type_from" type="select" required>
+                                <option value="mp4">mp4</option>
+                                <option value="gif">gif</option>
+                                <option value="png">png</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="select_type_to">To:</label>
+                            <select id="select_type_to" name="select_type_to" type="select" required>
+                                <option value="mp4">mp4</option>
+                                <option value="gif">gif</option>
+                                <option value="png">png</option>
+                            </select>
+                        </div>
+                        <br>
+                        <input name="name" type="text" placeholder="Animation name" required>
+                        <input name="scale" type="number" placeholder="Animation scale" required>
+                        <input name="framerate" type="number" placeholder="Animation framerate" required>
+                        <input name="imgs" type="file" multiple>
+                        <button>Submit</button>
+                    </fieldset>
+                </form>
+            </div>
+            {% for anim in anims %}
             <span class="status">{{ anim.status }}</span>
             <div>
                 <div>
                     <td>{{ anim.pk }}</td>
-                    <td><a href="{% url 'mkgif:details' anim.pk %}">{{ anim.name }}</a></td>
+                    <td><a href="{% url 'mkgif:animation_detail_list' anim.pk %}">{{ anim.name }}</a></td>
                 </div>
                            
                 <button
-                data-hx-delete="{% url 'mkgif:gif_pk' anim.pk %}"
+                data-hx-delete="{% url 'mkgif:animation_details' anim.pk %}"
                 data-hx-trigger="click"
                 data-hx-target="body"
             >Delete</button>
@@ -46,36 +77,7 @@
         {% endfor %}
    
             <hr>
-            <form action="{% url 'mkgif:animation' %}" method="POST" enctype="multipart/form-data">
-                <fieldset>
-                    <legend><label>Add New GIF Animation</label></legend>
-                    {% csrf_token %}
 
-                    <div>
-                        <p>Choose a format:</p>
-                        <label for="select_type_from">From:</label>
-                        <select id="select_type_from" name="select_type_from" type="select" required>
-                            <option value="mp4">mp4</option>
-                            <option value="gif">gif</option>
-                            <option value="png">png</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="select_type_to">To:</label>
-                        <select id="select_type_to" name="select_type_to" type="select" required>
-                            <option value="mp4">mp4</option>
-                            <option value="gif">gif</option>
-                            <option value="png">png</option>
-                        </select>
-                    </div>
-                    <br>
-                    <input name="name" type="text" placeholder="Animation name" required>
-                    <input name="scale" type="number" placeholder="Animation scale" required>
-                    <input name="framerate" type="number" placeholder="Animation framerate" required>
-                    <input name="imgs" type="file" multiple>
-                    <button>Submit</button>
-                </fieldset>
-            </form>
         </main>
         
 
@@ -87,7 +89,7 @@
 
 <script>
 function checkJobStatus(animId) {
-    fetch(`/check_status/${animId}/`)
+    fetch(`/status/${animId}/`)
         .then(response => response.json())
         .then(data => {
             const status = data.status;

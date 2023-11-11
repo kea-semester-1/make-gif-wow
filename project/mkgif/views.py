@@ -19,48 +19,39 @@ def animation(request):
         if animation_form.is_valid():
             anim = animation_form.save(commit=False)
             anim.user = request.user
-            if len(request.FILES.getlist("imgs")) > 1:
-                anim.type = animation_form.cleaned_data["select_type_to"]
-                anim.save()
-                for img in request.FILES.getlist("imgs"):
-                    Image.objects.create(animation=anim, image=img)
-                anim.enqueue(
-                    {
-                        "framerate": animation_form.cleaned_data["framerate"],
-                        "scale": animation_form.cleaned_data["scale"],
-                        "from_format": animation_form.cleaned_data["select_type_from"],
-                        "to_format": animation_form.cleaned_data["select_type_to"],
-                        "name": animation_form.cleaned_data["name"],
-                    }
-                )
-                animation_form = None
-            else:
-                anim.type = animation_form.cleaned_data["select_type_to"]
-                anim.save()
-                img = request.FILES.getlist("imgs")[0]
+            anim.type = animation_form.cleaned_data["select_type_to"]
+            anim.save()
+
+            images = request.FILES.getlist("imgs")
+            for img in images:
                 Image.objects.create(animation=anim, image=img)
-                anim.enqueue_one(
-                    {
-                        "framerate": animation_form.cleaned_data["framerate"],
-                        "scale": animation_form.cleaned_data["scale"],
-                        "from_format": animation_form.cleaned_data["select_type_from"],
-                        "to_format": animation_form.cleaned_data["select_type_to"],
-                        "name": animation_form.cleaned_data["name"],
-                        "name_from": img.name,
-                    }
-                )
-                animation_form = None
+
+            params = {
+                "framerate": animation_form.cleaned_data["framerate"],
+                "scale": animation_form.cleaned_data["scale"],
+                "from_format": animation_form.cleaned_data["select_type_from"],
+                "to_format": animation_form.cleaned_data["select_type_to"],
+                "name": animation_form.cleaned_data["name"],
+                "amount_of_files": len(images),
+            }
+
+            # If only one image, add the filename to the parameters
+            if len(images) == 1:
+                params["single_filename"] = images[0].name
+
+            anim.enqueue(params)
+            animation_form = None
 
     if not animation_form:
         animation_form = AnimationForm()
 
-    anims = Animation.objects.filter(user=request.user)
+    anims = Animation.objects.filter(user=request.user).order_by("-pk")
     context = {"anims": anims, "animation_form": animation_form}
     return render(request, "mkgif/index.html", context)
 
 
 @login_required
-def details(request, pk):
+def animation_details_list(request, pk):
     anim = get_object_or_404(Animation, pk=pk, user=request.user)
     images = Image.objects.filter(animation=pk)
     context = {"anim": anim, "images": images}
@@ -68,50 +59,52 @@ def details(request, pk):
 
 
 @login_required
-def gifs(request, pk):
+def animation_details(request, pk):
     anim = get_object_or_404(Animation, pk=pk)
 
-    # Delete the associated Image objects and their physical files
-    for image in anim.image_set.all():
-        image.delete(anim.pk)
+    if request.method == "POST":
+        # TODO: find a better way to do this.
+        name = request.POST.get("name", None)
+        framerate = request.POST["framerate"]
+        scale = request.POST["scale"]
+        from_format = request.POST["select_type_from"]
+        to_format = request.POST["select_type_to"]
+        file_names = []
 
-    # Delete the Animation object
-    anim.delete()
+        for file in request.FILES.getlist("imgs"):
+            file_names.append(file.name)
 
-    anims = Animation.objects.all()
-    context = {"anims": anims}
-    return render(request, "mkgif/index.html", context)
+        print("fiiiles", file_names)
+        Animation.objects.filter(pk=pk).update(name=name)
+        anim.enqueue(
+            params={
+                "framerate": framerate,
+                "scale": scale,
+                "from_format": from_format,
+                "to_format": to_format,
+                "name": name if name else anim.name,
+                "single_filename": anim.name,
+            }
+        )
+        anims = Animation.objects.all()
+        context = {"anims": anims}
+        return render(request, "mkgif/index.html", context)
+
+    if request.method == "DELETE":
+        # Delete the associated Image objects and their physical files
+        for image in anim.image_set.all():
+            image.delete(anim.pk)
+
+        # Delete the Animation object
+        anim.delete()
+
+        anims = Animation.objects.all()
+        context = {"anims": anims}
+        return render(request, "mkgif/index.html", context)
 
 
 @login_required
-def make_gif(request, pk):
-    anim = get_object_or_404(Animation, pk=pk)
-
-    name = request.POST.get("name", None)
-    framerate = request.POST["framerate"]
-    scale = request.POST["scale"]
-    from_format = request.POST["select_type_from"]
-    to_format = request.POST["select_type_to"]
-
-    print(name)
-    print(pk)
-    Animation.objects.filter(pk=pk).update(name=name)
-    anim.enqueue(
-        params={
-            "framerate": framerate,
-            "scale": scale,
-            "from_format": from_format,
-            "to_format": to_format,
-            "name": name,
-        }
-    )
-    anims = Animation.objects.all()
-    context = {"anims": anims}
-    return render(request, "mkgif/index.html", context)
-
-
-@login_required
-def check_status(request, pk):
+def status(request, pk):
     animation = Animation.objects.get(pk=pk)
     status = get_job_status(animation.job_id)
     print(animation.status)
