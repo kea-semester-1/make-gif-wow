@@ -5,6 +5,7 @@ from mkgif.forms import AnimationForm
 from django.http import HttpResponseRedirect
 from mkgif.utils import get_job_status
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 
 
 def index(request):
@@ -14,6 +15,7 @@ def index(request):
 @login_required
 def animation(request):
     animation_form = None
+
     if request.method == "POST":
         animation_form = AnimationForm(request.POST)
         if animation_form.is_valid():
@@ -46,8 +48,12 @@ def animation(request):
         animation_form = AnimationForm()
 
     anims = Animation.objects.filter(user=request.user).order_by("-pk")
-    context = {"anims": anims, "animation_form": animation_form}
+    paginator = Paginator(anims, 2)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    context = {"animation_form": animation_form, "page_obj": page_obj}
     return render(request, "mkgif/index.html", context)
+
 
 @login_required
 def animation_details(request, pk):
@@ -87,7 +93,10 @@ def animation_details(request, pk):
         return redirect("mkgif:index")
 
     images = Image.objects.filter(animation=pk)
-    context = {"anim": anim, "images": images}
+    paginator = Paginator(images, 5)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    context = {"anim": anim, "page_obj": page_obj}
     return render(request, "mkgif/details.html", context)
 
 
