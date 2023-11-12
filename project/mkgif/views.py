@@ -48,7 +48,7 @@ def animation(request):
         animation_form = AnimationForm()
 
     anims = Animation.objects.filter(user=request.user).order_by("-pk")
-    paginator = Paginator(anims, 2)
+    paginator = Paginator(anims, 6)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
     context = {"animation_form": animation_form, "page_obj": page_obj}
@@ -66,18 +66,25 @@ def animation_details(request, pk):
         scale = request.POST["scale"]
         from_format = request.POST["select_type_from"]
         to_format = request.POST["select_type_to"]
-        anim.enqueue_edit(
-            params={
-                "framerate": framerate,
-                "scale": scale,
-                "from_format": from_format,
-                "to_format": to_format,
-                "name": name if name else anim.name,
-                "original_filename": f"{anim.name}.{anim.type}",
-            }
-        )
+
+        params = {
+            "name": name if name else anim.name,
+            "original_filename": f"{anim.name}.{anim.type}",
+            "original_filetype": f"{anim.type}",
+        }
+        if all([framerate, scale, from_format, to_format]):
+            params.update(
+                {
+                    "framerate": framerate,
+                    "scale": scale,
+                    "from_format": from_format,
+                    "to_format": to_format,
+                }
+            )
+            anim.type = to_format
+        anim.enqueue_edit(params=params)
+
         anim.name = name if name else anim.name
-        anim.type = to_format
         anim.save()
 
         return redirect("mkgif:index")
@@ -93,7 +100,7 @@ def animation_details(request, pk):
         return redirect("mkgif:index")
 
     images = Image.objects.filter(animation=pk)
-    paginator = Paginator(images, 5)
+    paginator = Paginator(images, 6)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
     context = {"anim": anim, "page_obj": page_obj}

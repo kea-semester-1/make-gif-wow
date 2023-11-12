@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -6,7 +7,7 @@
         <title>Make GIF</title>
        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/holiday.css@0.9.8" />
        <script src="https://unpkg.com/htmx.org@1.9.3" integrity="sha384-lVb3Rd/Ca0AxaoZg5sACe8FJKF0tnUgR2Kd7ehUOG5GCcROv5uBIZsOqovBAcWua" crossorigin="anonymous"></script>
-
+       <link rel="stylesheet" href="{% static 'mkgif/styles.css' %}">
     </head>
     <body hx-boost="true">
         <header>
@@ -51,30 +52,29 @@
                     </fieldset>
                 </form>
             </div>
-            {% for anim in page_obj %}
-            <span class="status">{{ anim.status }}</span>
-            <div>
-                <div>
-                    <td>{{ anim.pk }}</td>
-                    <td><a href="{% url 'mkgif:animation_details' anim.pk %}">{{ anim.name }}</a></td>
-                </div>
-                           
-                <button
-                data-hx-delete="{% url 'mkgif:animation_details' anim.pk %}"
-                data-hx-trigger="click"
-                data-hx-target="body"
-            >Delete</button>
-            {%if anim.status == "complete"%}
-            {%include 'components/media-div.html' with anim=anim%}
-            {% else %}
-            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b9/Youtube_loading_symbol_1_(wobbly).gif">
-            {%endif%}
-            
+            <div class="animation-container">
+                {% for anim in page_obj %}
+                    <div class="animation-card">
+                        <span class="status">{{ anim.status }}</span>
+                        <div class="animation-info">
+                            <span>{{ anim.pk }}</span>
+                            <a href="{% url 'mkgif:animation_details' anim.pk %}">{{ anim.name }}</a>
+                        </div>
+                        <button
+                            data-hx-delete="{% url 'mkgif:animation_details' anim.pk %}"
+                            data-hx-trigger="click"
+                            data-hx-target="body"
+                        >Delete</button>
+                        {% if anim.status == "complete" %}
+                            {% include 'components/media-div.html' with anim=anim %}
+                        {% else %}
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b9/Youtube_loading_symbol_1_(wobbly).gif">
+                        {% endif %}
+                    </div>
+                {% endfor %}
             </div>
-    
+            
   
-
-        {% endfor %}
             <hr>
 
               <div class="pagination">

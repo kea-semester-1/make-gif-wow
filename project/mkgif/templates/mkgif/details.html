@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -6,6 +7,7 @@
         <title>Make GIF</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/holiday.css@0.9.8" />
         <script src="https://unpkg.com/htmx.org@1.9.3" integrity="sha384-lVb3Rd/Ca0AxaoZg5sACe8FJKF0tnUgR2Kd7ehUOG5GCcROv5uBIZsOqovBAcWua" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="{% static 'mkgif/styles.css' %}">
     </head>
     <body hx-boost="true">
         <legend><h1>Details for gif {{anim.pk}}</h1></legend>
@@ -14,7 +16,6 @@
         <header>
         </header>
             <div>    
-            {% load static %}
             {%include 'components/media-div.html' with anim=anim%}
            </div>
 
@@ -54,9 +55,17 @@
 
            <div>
             <p>Pictures in my animation</p>
-                {% for img in page_obj %}           
-                <img width="300" src="{% get_media_prefix %}{{img.image}}">
+            <div class="animation-container">
+                {% for img in page_obj %}        
+                
+                    <div class="animation-card">
+                        
+                        <img width="300" src="{% get_media_prefix %}{{img.image}}">
+        
+                    </div>
                 {% endfor %}
+            </div>
+                
                 <hr>
 
                 <div class="pagination">
