@@ -1,5 +1,5 @@
 from .models import Animation, Image
-from django.shortcuts import render, get_object_or_404, reverse
+from django.shortcuts import render, get_object_or_404, reverse, redirect
 from django.contrib.auth.decorators import login_required
 from mkgif.forms import AnimationForm
 from django.http import HttpResponseRedirect
@@ -49,15 +49,6 @@ def animation(request):
     context = {"anims": anims, "animation_form": animation_form}
     return render(request, "mkgif/index.html", context)
 
-
-@login_required
-def animation_details_list(request, pk):
-    anim = get_object_or_404(Animation, pk=pk, user=request.user)
-    images = Image.objects.filter(animation=pk)
-    context = {"anim": anim, "images": images}
-    return render(request, "mkgif/details.html", context)
-
-
 @login_required
 def animation_details(request, pk):
     anim = get_object_or_404(Animation, pk=pk)
@@ -69,26 +60,21 @@ def animation_details(request, pk):
         scale = request.POST["scale"]
         from_format = request.POST["select_type_from"]
         to_format = request.POST["select_type_to"]
-        file_names = []
-
-        for file in request.FILES.getlist("imgs"):
-            file_names.append(file.name)
-
-        print("fiiiles", file_names)
-        Animation.objects.filter(pk=pk).update(name=name)
-        anim.enqueue(
+        anim.enqueue_edit(
             params={
                 "framerate": framerate,
                 "scale": scale,
                 "from_format": from_format,
                 "to_format": to_format,
                 "name": name if name else anim.name,
-                "single_filename": anim.name,
+                "original_filename": f"{anim.name}.{anim.type}",
             }
         )
-        anims = Animation.objects.all()
-        context = {"anims": anims}
-        return render(request, "mkgif/index.html", context)
+        anim.name = name if name else anim.name
+        anim.type = to_format
+        anim.save()
+
+        return redirect("mkgif:index")
 
     if request.method == "DELETE":
         # Delete the associated Image objects and their physical files
@@ -98,9 +84,11 @@ def animation_details(request, pk):
         # Delete the Animation object
         anim.delete()
 
-        anims = Animation.objects.all()
-        context = {"anims": anims}
-        return render(request, "mkgif/index.html", context)
+        return redirect("mkgif:index")
+
+    images = Image.objects.filter(animation=pk)
+    context = {"anim": anim, "images": images}
+    return render(request, "mkgif/details.html", context)
 
 
 @login_required
