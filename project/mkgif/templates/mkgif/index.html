@@ -106,29 +106,31 @@
             })
         </script>
 
-<script>
-function checkJobStatus(animId) {
-    fetch(`/status/${animId}/`)
-        .then(response => response.json())
-        .then(data => {
-            const status = data.status;
-            if (status === "complete") {
-                location.reload();
-                clearInterval(intervalIdMap[animId]);
+    <script>
+        {% for anim in page_obj %}
+            if ("{{ anim.status }}" === "processing") {
+                let animSocket = new WebSocket(
+                    'ws://' + window.location.host + '/ws/status/{{ anim.pk }}/'
+                );
+
+                animSocket.onmessage = function(e) {
+                    const data = JSON.parse(e.data);
+                    console.log(data)
+                    if (data.status === "finished") {
+                        console.log("Animation complete");
+                        location.reload();
+                    }
+                };
+
+                animSocket.onclose = function(e) {
+                    console.error('Status socket closed unexpectedly');
+                };
             }
-        })
-        .catch(error => console.error("Error fetching job status:", error));
-}
-window.intervalIdMap = window.intervalIdMap || {};
-
-{% for anim in page_obj %}
-    // Only start the interval if the status is "processing"
-    if ("{{ anim.status }}" === "processing") {
-        intervalIdMap[{{ anim.pk }}] = setInterval(() => checkJobStatus({{ anim.pk }}), 1000);
-    }
-{% endfor %}
-
+        {% endfor %}
     </script>
+
+
+
     
     </body>
 </html>
