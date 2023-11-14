@@ -15,6 +15,13 @@ def mk_gif_ffmpeg(params):
     to_format = params["params"]["to_format"]
     name = params["params"]["name"]
     single_filename = params["params"].get("single_filename")
+    amount_of_files = params["params"].get("amount_of_files")
+
+    if amount_of_files and from_format == "mp4":
+        print("wtfffff")
+        path = f"{path}/{single_filename}"
+        extract_frames_from_video((path), params["pk"])
+        return
 
     if single_filename:
         # Use the single filename passed from the view
@@ -71,3 +78,17 @@ def edit_media(params):
             os.rename(temp_output_file, final_output_file)
         else:
             print(f"Expected output file was not found: {temp_output_file}")
+
+
+def extract_frames_from_video(video_path, anim_id):
+    output_path = os.path.join(settings.MEDIA_ROOT, str(anim_id), "frame_%04d.png")
+    print(video_path)
+    command = [
+        "ffmpeg",
+        "-i",
+        video_path,
+        "-r",
+        "1",  # You can adjust the frame rate
+        output_path,
+    ]
+    subprocess.run(command, shell=False)
