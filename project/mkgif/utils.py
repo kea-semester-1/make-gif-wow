@@ -6,7 +6,9 @@ from django_rq import get_queue
 from rq.job import Job
 import subprocess
 from . import models
-from django.core.files import File
+import youtube_dl
+from django.http import StreamingHttpResponse
+import mimetypes
 
 
 def mk_gif_ffmpeg(params):
@@ -111,3 +113,47 @@ def extract_frames_from_video(video_path, anim_id, name):
         relative_file_path = os.path.join(str(anim_id), file_name)
         if file_name.endswith(".png"):
             models.Image.objects.create(animation=anim, image=relative_file_path)
+
+
+def download_and_trim_youtube_video(request, url, start_time, end_time, output_name):
+    # Temporary path for the downloaded video
+    temp_video_path = os.path.join(settings.TEMP_DIR, "input_file.mp4")
+
+    # Download the video to a temporary location
+    ydl_opts = {"format": "best", "outtmpl": temp_video_path, "verbose": True}
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
+    # Temporary path for the trimmed video
+    trimmed_video_path = os.path.join(settings.TEMP_DIR, f"{output_name}.mp4")
+
+    # FFmpeg command to trim the video
+    ffmpeg_command = [
+        "ffmpeg",
+        "-i",
+        temp_video_path,
+        "-ss",
+        start_time,
+        "-to",
+        end_time,
+        "-c",
+        "copy",
+        trimmed_video_path,
+    ]
+    subprocess.run(ffmpeg_command, shell=False)
+
+    # Ensure the trimmed file exists
+    if not os.path.exists(trimmed_video_path):
+        raise FileNotFoundError("Trimmed video file not found.")
+
+    def file_stream():
+        with open(trimmed_video_path, "rb") as f:
+            yield from f
+
+        # Clean up temporary files
+        os.remove(trimmed_video_path)
+        os.remove(temp_video_path)
+
+    response = StreamingHttpResponse(file_stream(), content_type="video/mp4")
+    response["Content-Disposition"] = f'attachment; filename="{output_name}.mp4"'
+    return response

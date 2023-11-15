@@ -1,5 +1,5 @@
 from django import forms
-from mkgif.models import Animation
+from mkgif.models import Animation, YouTubeVideo
 
 
 FORMAT_CHOICES = [
@@ -22,3 +22,10 @@ class AnimationForm(forms.ModelForm):
     class Meta:
         model = Animation
         fields = ("name",)
+
+
+class YouTubeDownloadForm(forms.Form):
+    youtube_url = forms.URLField(label="YouTube URL", required=True)
+    start_time = forms.CharField(label="Start Time (HH:MM:SS)", required=True)
+    end_time = forms.CharField(label="End Time (HH:MM:SS)", required=True)
+    video_name = forms.CharField(label="Video name", required=True)

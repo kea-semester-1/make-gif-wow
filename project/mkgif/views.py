@@ -6,6 +6,8 @@ from django.http import HttpResponseRedirect
 from mkgif.utils import get_job_status
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from .forms import YouTubeDownloadForm
+from .utils import download_and_trim_youtube_video
 
 
 def index(request):
@@ -118,3 +120,26 @@ def status(request, pk):
         animation.save()
 
     return JsonResponse({"status": animation.status})
+
+
+def youtube_video_list(request):
+    if request.method == "POST":
+        form = YouTubeDownloadForm(request.POST)
+        if form.is_valid():
+            # Extract form data
+            url = form.cleaned_data["youtube_url"]
+            start_time = form.cleaned_data["start_time"]
+            end_time = form.cleaned_data["end_time"]
+            output_name = form.cleaned_data["video_name"]
+
+            # Call the function to download and trim the video and return the response
+            return download_and_trim_youtube_video(
+                request, url, start_time, end_time, output_name
+            )
+
+        # If the form isn't valid, fall through to re-render the form with validation errors
+    else:
+        form = YouTubeDownloadForm()
+
+    # Render the form for GET request or for POST with form errors
+    return render(request, "mkgif/youtube.html", {"form": form})

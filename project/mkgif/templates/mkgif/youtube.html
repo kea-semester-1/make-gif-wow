@@ -1,0 +1,96 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Make GIF</title>
+       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/holiday.css@0.9.8" />
+       <script src="https://unpkg.com/htmx.org@1.9.3" integrity="sha384-lVb3Rd/Ca0AxaoZg5sACe8FJKF0tnUgR2Kd7ehUOG5GCcROv5uBIZsOqovBAcWua" crossorigin="anonymous"></script>
+       <link rel="stylesheet" href="{% static 'mkgif/styles.css' %}">
+    </head>
+    <body >
+        <header>
+            <h1>Make GIF Animations</h1>
+        </header>
+        {%include 'components/navbar.html'%}
+
+        <main>
+            <div>
+                <p>My GIF Animations:</p>
+            </div>
+
+            <div>
+                <form id="download-form" action="{% url 'mkgif:youtube_video_list' %}" method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit">Download Video</button>
+                </form>
+
+            </div>
+            <div class="animation-container">
+                {% for anim in page_obj %}
+                    <div class="animation-card">
+                        <span class="status">{{ anim.status }}</span>
+                        <div class="animation-info">
+                            <span>{{ anim.pk }}</span>
+                            <a href="{% url 'mkgif:animation_details' anim.pk %}">{{ anim.name }}</a>
+                        </div>
+                        <button
+                            data-hx-delete="{% url 'mkgif:animation_details' anim.pk %}"
+                            data-hx-trigger="click"
+                            data-hx-target="body"
+                        >Delete</button>
+                        {% if anim.status == "complete" %}
+                            {% include 'components/media-div.html' with anim=anim %}
+                        {% else %}
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b9/Youtube_loading_symbol_1_(wobbly).gif">
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            
+
+
+        </main>
+        
+
+    <script>
+        document.getElementById('download-form').addEventListener('submit', function(event) {
+            console.log("helllo")
+            event.preventDefault();
+            const form = this;
+            const action = form.getAttribute('action');
+            const formData = new FormData(form);
+
+        fetch(action, {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                const contentDisposition = response.headers.get('Content-Disposition');
+                const filename = contentDisposition
+                    ? contentDisposition.split('filename=')[1].replaceAll('"', '')
+                    : 'downloaded_video.mp4'; // Default filename if not provided
+
+                return response.blob().then(blob => ({ blob, filename }));
+            })
+            .then(({ blob, filename }) => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            })
+            .catch(error => console.error('Error:', error));
+        })
+    </script>
+
+
+
+    
+    </body>
+</html>
+

@@ -59,3 +59,17 @@ class Image(models.Model):
         if os.path.exists(folder_path) and os.path.isdir(folder_path):
             shutil.rmtree(folder_path)
         super().delete()
+
+
+class YouTubeVideo(models.Model):
+    youtube_url = models.URLField(max_length=1024)
+    start_time = models.CharField(max_length=10)  # Format: 'HH:MM:SS'
+    end_time = models.CharField(max_length=10)  # Format: 'HH:MM:SS'
+    video_name = models.CharField(max_length=100)
+    file_path = models.CharField(max_length=100)
+
+    def delete(self, pk):
+        folder_path = os.path.join(settings.MEDIA_ROOT, str(pk))
+        if os.path.exists(folder_path) and os.path.isdir(folder_path):
+            shutil.rmtree(folder_path)
+        super().delete()
