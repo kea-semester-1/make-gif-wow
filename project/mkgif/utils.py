@@ -5,6 +5,8 @@ import shlex
 from django_rq import get_queue
 from rq.job import Job
 import subprocess
+from . import models
+from django.core.files import File
 
 
 def mk_gif_ffmpeg(params):
@@ -15,6 +17,11 @@ def mk_gif_ffmpeg(params):
     to_format = params["params"]["to_format"]
     name = params["params"]["name"]
     single_filename = params["params"].get("single_filename")
+
+    if from_format == "mp4" and to_format == "png":
+        path = f"{path}/{single_filename}"
+        extract_frames_from_video((path), params["pk"], single_filename)
+        return
 
     if single_filename:
         # Use the single filename passed from the view
@@ -71,3 +78,36 @@ def edit_media(params):
             os.rename(temp_output_file, final_output_file)
         else:
             print(f"Expected output file was not found: {temp_output_file}")
+
+
+def extract_frames_from_video(video_path, anim_id, name):
+    output_path = os.path.join(settings.MEDIA_ROOT, str(anim_id))
+
+    # Ensure output directory exists
+    os.makedirs(output_path, exist_ok=True)
+
+    file_name = os.path.join(output_path, "frame_%04d.png")
+    command = [
+        "ffmpeg",
+        "-i",
+        video_path,
+        "-r",
+        "1",  # Adjust the frame rate as needed
+        file_name,
+    ]
+
+    # Run the FFmpeg command
+    subprocess.run(command, shell=False)
+
+    # list files jut created
+    files_created = os.listdir(output_path)
+    anim = models.Animation.objects.get(pk=anim_id)
+    new_name, new_type = name.split(".")
+    anim.type = new_type
+    anim.name = new_name
+    anim.save()
+
+    for file_name in files_created:
+        relative_file_path = os.path.join(str(anim_id), file_name)
+        if file_name.endswith(".png"):
+            models.Image.objects.create(animation=anim, image=relative_file_path)
