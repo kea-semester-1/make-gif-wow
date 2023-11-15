@@ -103,7 +103,7 @@ def animation_details(request, pk):
     paginator = Paginator(images, 6)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
-    context = {"anim": anim, "page_obj": page_obj}
+    context = {"anim": anim, "page_obj_detail": page_obj}
     return render(request, "mkgif/details.html", context)
 
 
