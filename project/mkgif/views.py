@@ -1,13 +1,14 @@
 from .models import Animation, Image
 from django.shortcuts import render, get_object_or_404, reverse, redirect
 from django.contrib.auth.decorators import login_required
-from mkgif.forms import AnimationForm
+from mkgif.forms import AnimationForm, YouTubeDownloadForm, MusicDownloadForm
 from django.http import HttpResponseRedirect
 from mkgif.utils import get_job_status
 from django.http import JsonResponse
 from django.core.paginator import Paginator
-from .forms import YouTubeDownloadForm
-from .utils import download_and_trim_youtube_video
+import django_rq
+
+from .utils import download_and_trim_youtube_video, convert_mp4_to_mp3
 
 
 def index(request):
@@ -15,7 +16,8 @@ def index(request):
 
 
 @login_required
-def animation(request):
+def animation_list(request):
+    """View for animation list and creation."""
     animation_form = None
 
     if request.method == "POST":
@@ -59,6 +61,7 @@ def animation(request):
 
 @login_required
 def animation_details(request, pk):
+    """View for detailes on an a animation, by pk."""
     anim = get_object_or_404(Animation, pk=pk)
 
     if request.method == "POST":
@@ -111,6 +114,7 @@ def animation_details(request, pk):
 
 @login_required
 def status(request, pk):
+    """Status view, that check how far a job is."""
     animation = Animation.objects.get(pk=pk)
     status = get_job_status(animation.job_id)
     print(animation.status)
@@ -123,23 +127,36 @@ def status(request, pk):
 
 
 def youtube_video_list(request):
+    """Youtube videos list, for generating videos from youtube."""
+    form = None
     if request.method == "POST":
         form = YouTubeDownloadForm(request.POST)
         if form.is_valid():
-            # Extract form data
             url = form.cleaned_data["youtube_url"]
             start_time = form.cleaned_data["start_time"]
             end_time = form.cleaned_data["end_time"]
             output_name = form.cleaned_data["video_name"]
 
-            # Call the function to download and trim the video and return the response
+            form = None
             return download_and_trim_youtube_video(
                 request, url, start_time, end_time, output_name
             )
-
-        # If the form isn't valid, fall through to re-render the form with validation errors
-    else:
+    if not form:
         form = YouTubeDownloadForm()
-
-    # Render the form for GET request or for POST with form errors
     return render(request, "mkgif/youtube.html", {"form": form})
+
+
+def music_list(request):
+    form = None
+    if request.method == "POST":
+        form = MusicDownloadForm(request.POST, request.FILES)
+        if form.is_valid():
+            music_file = request.FILES["music_file"]
+            music_file_name = form.cleaned_data["music_file_name"]
+
+            #  wow = django_rq.enqueue(convert_mp4_to_mp3, music_file, music_file_name)
+            return convert_mp4_to_mp3(music_file, music_file_name)
+    else:
+        form = MusicDownloadForm()
+
+    return render(request, "mkgif/music.html", {"form": form})

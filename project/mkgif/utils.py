@@ -8,10 +8,11 @@ import subprocess
 from . import models
 import youtube_dl
 from django.http import StreamingHttpResponse
-import mimetypes
+import uuid
 
 
 def mk_gif_ffmpeg(params):
+    """Converts files based on to/from formats"""
     path = shlex.quote(str(settings.MEDIA_ROOT / f'{params["pk"]}'))
     framerate = params["params"]["framerate"]
     scale = params["params"]["scale"]
@@ -42,12 +43,14 @@ def mk_gif_ffmpeg(params):
 
 
 def get_job_status(job_id):
+    """Get the status of a job by id."""
     queue = get_queue()
     job = Job.fetch(job_id, connection=queue.connection)
     return job.get_status()
 
 
 def edit_media(params):
+    """Edits media."""
     base_path = settings.MEDIA_ROOT / str(params["pk"])
     framerate = params["params"].get("framerate", None)
     scale = params["params"].get("scale", None)
@@ -59,12 +62,11 @@ def edit_media(params):
     input_file = f"{base_path}/{original_filename}"
     temp_output_file = f"{base_path}/{new_name}_temp.{to_format}"
 
-    # Check if framerate, scale, or to_format is None
+    # Check if framerate, scale, or to_format is None, this will only change the name
     if not all([framerate, scale, to_format]):
         final_output_file = f"{base_path}/{new_name}.{original_filetype}"
         os.rename(input_file, final_output_file)
     else:
-        # Construct and execute the FFmpeg command
         final_output_file = f"{base_path}/{new_name}.{to_format}"
         command = f'ffmpeg -y -i "{input_file}" -r {framerate} -vf scale={scale}:-1 "{temp_output_file}"'
         print("Executing command:", command)
@@ -73,7 +75,8 @@ def edit_media(params):
         print("FFmpeg Output:", result.stdout)
         print("FFmpeg Error:", result.stderr)
 
-        # Replace the original file with the temporary output file
+        # Replace the original file with the temporary output file, 
+        # ffmpeg cannot handle editing an open file, so a temp file is created
         if os.path.exists(temp_output_file):
             if os.path.exists(final_output_file):
                 os.remove(final_output_file)
@@ -83,6 +86,7 @@ def edit_media(params):
 
 
 def extract_frames_from_video(video_path, anim_id, name):
+    """Converts mp4 files to png."""
     output_path = os.path.join(settings.MEDIA_ROOT, str(anim_id))
 
     # Ensure output directory exists
@@ -116,8 +120,9 @@ def extract_frames_from_video(video_path, anim_id, name):
 
 
 def download_and_trim_youtube_video(request, url, start_time, end_time, output_name):
-    # Temporary path for the downloaded video
-    temp_video_path = os.path.join(settings.TEMP_DIR, "input_file.mp4")
+    """Downloads and trims the a video from youtube."""
+
+    temp_video_path = os.path.join(settings.TEMP_DIR, f"{uuid.uuid4()}.mp4")
 
     # Download the video to a temporary location
     ydl_opts = {"format": "best", "outtmpl": temp_video_path, "verbose": True}
@@ -150,10 +155,54 @@ def download_and_trim_youtube_video(request, url, start_time, end_time, output_n
         with open(trimmed_video_path, "rb") as f:
             yield from f
 
-        # Clean up temporary files
+        # Clean up
         os.remove(trimmed_video_path)
         os.remove(temp_video_path)
 
     response = StreamingHttpResponse(file_stream(), content_type="video/mp4")
     response["Content-Disposition"] = f'attachment; filename="{output_name}.mp4"'
+    return response
+
+
+def convert_mp4_to_mp3(uploaded_file, output_name):
+    """Converts mp4 to mp3."""
+    
+    # Temporary path for the uploaded video
+    temp_video_path = os.path.join(settings.TEMP_DIR, f"{uuid.uuid4()}.mp4")
+
+    # Save the uploaded file to the temporary path
+    with open(temp_video_path, "wb+") as f:
+        for chunk in uploaded_file.chunks():
+            f.write(chunk)
+
+    # Path for the converted audio file
+    converted_audio_path = os.path.join(settings.MEDIA_ROOT, f"{output_name}.mp3")
+
+    # FFmpeg command to convert video to audio
+    ffmpeg_command = [
+        "ffmpeg",
+        "-i",
+        temp_video_path,
+        "-q:a",
+        "0",
+        "-map",
+        "a",
+        converted_audio_path,
+    ]
+    subprocess.run(ffmpeg_command, shell=False)
+
+    # Ensure the converted file exists
+    if not os.path.exists(converted_audio_path):
+        raise FileNotFoundError("Converted audio file not found.")
+
+    def file_stream():
+        with open(converted_audio_path, "rb") as f:
+            yield from f
+
+        # Clean up
+        os.remove(converted_audio_path)
+        os.remove(temp_video_path)
+
+    response = StreamingHttpResponse(file_stream(), content_type="audio/mpeg")
+    response["Content-Disposition"] = f'attachment; filename="{output_name}.mp3"'
     return response

@@ -29,3 +29,8 @@ class YouTubeDownloadForm(forms.Form):
     start_time = forms.CharField(label="Start Time (HH:MM:SS)", required=True)
     end_time = forms.CharField(label="End Time (HH:MM:SS)", required=True)
     video_name = forms.CharField(label="Video name", required=True)
+
+
+class MusicDownloadForm(forms.Form):
+    music_file_name = forms.CharField(label="Music name", required=True)
+    music_file = forms.FileField(label="Upload MP4 File", required=True)

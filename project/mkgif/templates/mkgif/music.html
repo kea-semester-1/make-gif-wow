@@ -11,20 +11,17 @@
     </head>
     <body >
         <header>
-            <h1>Download video</h1>
+            <h1>Music converter</h1>
         </header>
         {%include 'components/navbar.html'%}
 
         <main>
-            <div>
-                <p>My GIF Animations:</p>
-            </div>
 
             <div>
-                <form id="download-form" action="{% url 'mkgif:youtube_video_list' %}" method="post">
+                <form id="download-form" action="{% url 'mkgif:music_list' %}" method="post">
                     {% csrf_token %}
                     {{ form.as_p }}
-                    <button type="submit">Create music</button>
+                    <button type="submit">Download Video</button>
                 </form>
 
             </div>
