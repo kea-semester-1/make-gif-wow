@@ -21,7 +21,7 @@
                 <form id="download-form" action="{% url 'mkgif:music_list' %}" method="post">
                     {% csrf_token %}
                     {{ form.as_p }}
-                    <button type="submit">Download Video</button>
+                    <button type="submit">Make mp3</button>
                 </form>
 
             </div>
@@ -54,35 +54,32 @@
 
         <script>
             document.getElementById('download-form').addEventListener('submit', function(event) {
-                console.log("helllo")
+                console.log("hello")
                 event.preventDefault();
                 const form = this;
-                const action = form.getAttribute('action');
-                const formData = new FormData(form);
-
-            fetch(action, {
+                fetch(form.action, {
                     method: 'POST',
-                    body: formData,
+                    body: new FormData(form),
                 })
-                .then(response => {
-                    const contentDisposition = response.headers.get('Content-Disposition');
-                    const filename = contentDisposition
-                        ? contentDisposition.split('filename=')[1].replaceAll('"', '')
-                        : 'downloaded_video.mp4'; // Default filename if not provided
+                .then(response => response.json())
+                .then(data => {
+                    const jobId = data.job_id;
+                    const ws = new WebSocket(`ws://${window.location.host}/ws/status/mp3/${jobId}/`);
+                    ws.onmessage = function(event) {
+                        const data = JSON.parse(event.data);
+                        console.log('Conversion status:', data.status);
+                        if (data.status === 'finished') {
 
-                    return response.blob().then(blob => ({ blob, filename }));
-                })
-                .then(({ blob, filename }) => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
+                            window.location.href = `/music/${jobId}/`; 
+
+                            // Handle the completion of the task, such as providing a download link
+                            ws.close();
+                        }
+                    };
                 })
                 .catch(error => console.error('Error:', error));
-            })
+            });
+
         </script>
 
 

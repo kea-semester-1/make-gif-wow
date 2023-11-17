@@ -61,15 +61,20 @@ class Image(models.Model):
         super().delete()
 
 
+class Job(models.Model):
+    job_id = models.UUIDField(max_length=100)
+    file_path = models.CharField(max_length=100)
+    status = models.CharField(max_length=10)
+    file_token = models.UUIDField(max_length=100, default=None, null=True)
+
+    def delete(self, *args, **kwargs):
+        if os.path.isfile(self.file_path):
+            os.remove(self.file_path)
+        super().delete(*args, **kwargs)
+
+
 class YouTubeVideo(models.Model):
     youtube_url = models.URLField(max_length=1024)
     start_time = models.CharField(max_length=10)  # Format: 'HH:MM:SS'
     end_time = models.CharField(max_length=10)  # Format: 'HH:MM:SS'
     video_name = models.CharField(max_length=100)
-    file_path = models.CharField(max_length=100)
-
-    def delete(self, pk):
-        folder_path = os.path.join(settings.MEDIA_ROOT, str(pk))
-        if os.path.exists(folder_path) and os.path.isdir(folder_path):
-            shutil.rmtree(folder_path)
-        super().delete()

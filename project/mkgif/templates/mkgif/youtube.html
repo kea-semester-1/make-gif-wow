@@ -24,7 +24,7 @@
                 <form id="download-form" action="{% url 'mkgif:youtube_video_list' %}" method="post">
                     {% csrf_token %}
                     {{ form.as_p }}
-                    <button type="submit">Create music</button>
+                    <button type="submit">Download video</button>
                 </form>
 
             </div>

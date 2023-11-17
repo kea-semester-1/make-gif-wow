@@ -31,6 +31,7 @@ class YouTubeDownloadForm(forms.Form):
     video_name = forms.CharField(label="Video name", required=True)
 
 
+
 class MusicDownloadForm(forms.Form):
     music_file_name = forms.CharField(label="Music name", required=True)
     music_file = forms.FileField(label="Upload MP4 File", required=True)

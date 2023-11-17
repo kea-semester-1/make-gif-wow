@@ -75,7 +75,7 @@ def edit_media(params):
         print("FFmpeg Output:", result.stdout)
         print("FFmpeg Error:", result.stderr)
 
-        # Replace the original file with the temporary output file, 
+        # Replace the original file with the temporary output file,
         # ffmpeg cannot handle editing an open file, so a temp file is created
         if os.path.exists(temp_output_file):
             if os.path.exists(final_output_file):
@@ -164,19 +164,34 @@ def download_and_trim_youtube_video(request, url, start_time, end_time, output_n
     return response
 
 
-def convert_mp4_to_mp3(uploaded_file, output_name):
-    """Converts mp4 to mp3."""
-    
+import django_rq
+
+
+def convert_mp4_to_mp3(music_file, output_name):
+    """Enqueue task and return the job id."""
+
+    job = django_rq.enqueue(_convert_mp4_to_mp3_task, music_file, output_name)
+    converted_audio_path = os.path.join(settings.TEMP_DIR, f"{output_name}.mp3")
+    models.Job.objects.create(
+        job_id=job.id, file_path=converted_audio_path, status="processing"
+    )
+
+    return job.id
+
+
+# TODO: probably save it with uuid instead.
+def _convert_mp4_to_mp3_task(music_file, output_name):
+    """Converts file to mp3."""
     # Temporary path for the uploaded video
     temp_video_path = os.path.join(settings.TEMP_DIR, f"{uuid.uuid4()}.mp4")
 
-    # Save the uploaded file to the temporary path
+    # Save the uploaded file
     with open(temp_video_path, "wb+") as f:
-        for chunk in uploaded_file.chunks():
+        for chunk in music_file.chunks():
             f.write(chunk)
 
-    # Path for the converted audio file
-    converted_audio_path = os.path.join(settings.MEDIA_ROOT, f"{output_name}.mp3")
+    # Temporary path for the converted audio
+    converted_audio_path = os.path.join(settings.TEMP_DIR, f"{output_name}.mp3")
 
     # FFmpeg command to convert video to audio
     ffmpeg_command = [
@@ -195,14 +210,8 @@ def convert_mp4_to_mp3(uploaded_file, output_name):
     if not os.path.exists(converted_audio_path):
         raise FileNotFoundError("Converted audio file not found.")
 
-    def file_stream():
-        with open(converted_audio_path, "rb") as f:
-            yield from f
+    # Optionally, delete the temporary uploaded video
+    os.remove(temp_video_path)
 
-        # Clean up
-        os.remove(converted_audio_path)
-        os.remove(temp_video_path)
-
-    response = StreamingHttpResponse(file_stream(), content_type="audio/mpeg")
-    response["Content-Disposition"] = f'attachment; filename="{output_name}.mp3"'
-    return response
+    # Return the path of the converted audio file for later use
+    return converted_audio_path

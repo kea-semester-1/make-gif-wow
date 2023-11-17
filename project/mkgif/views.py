@@ -1,12 +1,13 @@
-from .models import Animation, Image
+from .models import Animation, Image, Job
 from django.shortcuts import render, get_object_or_404, reverse, redirect
 from django.contrib.auth.decorators import login_required
 from mkgif.forms import AnimationForm, YouTubeDownloadForm, MusicDownloadForm
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, FileResponse
 from mkgif.utils import get_job_status
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 import django_rq
+import os
 
 from .utils import download_and_trim_youtube_video, convert_mp4_to_mp3
 
@@ -77,6 +78,7 @@ def animation_details(request, pk):
             "original_filename": f"{anim.name}.{anim.type}",
             "original_filetype": f"{anim.type}",
         }
+
         if all([framerate, scale, from_format, to_format]):
             params.update(
                 {
@@ -147,16 +149,37 @@ def youtube_video_list(request):
 
 
 def music_list(request):
-    form = None
     if request.method == "POST":
         form = MusicDownloadForm(request.POST, request.FILES)
         if form.is_valid():
             music_file = request.FILES["music_file"]
             music_file_name = form.cleaned_data["music_file_name"]
 
-            #  wow = django_rq.enqueue(convert_mp4_to_mp3, music_file, music_file_name)
-            return convert_mp4_to_mp3(music_file, music_file_name)
+            # Enqueue the conversion task and get the job ID
+            job_id = convert_mp4_to_mp3(music_file, music_file_name)
+
+            # Return the job ID to the client
+            return JsonResponse(
+                {
+                    "job_id": job_id,
+                }
+            )
+
     else:
         form = MusicDownloadForm()
 
     return render(request, "mkgif/music.html", {"form": form})
+
+
+def file(request, job_id):
+    """Download file."""
+    status_record = Job.objects.get(job_id=job_id)
+    file_path = status_record.file_path
+
+    response = FileResponse(open(file_path, "rb"))
+    response[
+        "Content-Disposition"
+    ] = f'attachment; filename="{os.path.basename(file_path)}"'
+
+    Job.objects.get(job_id=job_id).delete()
+    return response
