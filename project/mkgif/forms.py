@@ -1,5 +1,5 @@
 from django import forms
-from mkgif.models import Animation, YouTubeVideo
+from mkgif.models import Animation
 
 
 FORMAT_CHOICES = [
