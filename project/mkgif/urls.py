@@ -11,5 +11,5 @@ urlpatterns = [
     path("status/<int:pk>/", views.status, name="status"),
     path("video/", views.youtube_video_list, name="youtube_video_list"),
     path("music/", views.music_list, name="music_list"),
-    path("music/<str:job_id>/", views.file, name="file"),
+    path("music/<str:job_id>/", views.file, name="music"),
 ]

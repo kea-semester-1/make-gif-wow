@@ -19,6 +19,7 @@ def index(request):
 @login_required
 def animation_list(request):
     """View for animation list and creation."""
+
     animation_form = None
 
     if request.method == "POST":
@@ -63,6 +64,7 @@ def animation_list(request):
 @login_required
 def animation_details(request, pk):
     """View for detailes on an a animation, by pk."""
+
     anim = get_object_or_404(Animation, pk=pk)
 
     if request.method == "POST":
@@ -119,15 +121,13 @@ def status(request, pk):
     """Status view, that check how far a job is."""
     animation = Animation.objects.get(pk=pk)
     status = get_job_status(animation.job_id)
-    print(animation.status)
-    print(status)
     if status == "finished" and animation.status != "complete":
         animation.status = "complete"
         animation.save()
 
     return JsonResponse({"status": animation.status})
 
-
+@login_required
 def youtube_video_list(request):
     """Youtube videos list, for generating videos from youtube."""
     form = None
@@ -147,8 +147,9 @@ def youtube_video_list(request):
         form = YouTubeDownloadForm()
     return render(request, "mkgif/youtube.html", {"form": form})
 
-
+@login_required
 def music_list(request):
+    """Create mp3."""
     if request.method == "POST":
         form = MusicDownloadForm(request.POST, request.FILES)
         if form.is_valid():
@@ -170,9 +171,10 @@ def music_list(request):
 
     return render(request, "mkgif/music.html", {"form": form})
 
-
+@login_required
 def file(request, job_id):
     """Download file."""
+
     status_record = Job.objects.get(job_id=job_id)
     file_path = status_record.file_path
 

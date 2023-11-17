@@ -1,7 +1,6 @@
 import os
 from django.conf import settings
 import shlex
-
 from django_rq import get_queue
 from rq.job import Job
 import subprocess
@@ -9,10 +8,12 @@ from . import models
 import youtube_dl
 from django.http import StreamingHttpResponse
 import uuid
+import django_rq
 
 
 def mk_gif_ffmpeg(params):
-    """Converts files based on to/from formats"""
+    """Converts files based on to/from formats."""
+
     path = shlex.quote(str(settings.MEDIA_ROOT / f'{params["pk"]}'))
     framerate = params["params"]["framerate"]
     scale = params["params"]["scale"]
@@ -38,12 +39,12 @@ def mk_gif_ffmpeg(params):
     command = (
         f'ffmpeg {input_str} -r 15 -vf scale={scale}:-1 "{path}/{name}.{to_format}"'
     )
-    print(command)
     os.system(command)
 
 
 def get_job_status(job_id):
-    """Get the status of a job by id."""
+    """Get the status of a job by id. NB! Job here is rq.job."""
+
     queue = get_queue()
     job = Job.fetch(job_id, connection=queue.connection)
     return job.get_status()
@@ -51,6 +52,7 @@ def get_job_status(job_id):
 
 def edit_media(params):
     """Edits media."""
+
     base_path = settings.MEDIA_ROOT / str(params["pk"])
     framerate = params["params"].get("framerate", None)
     scale = params["params"].get("scale", None)
@@ -85,8 +87,10 @@ def edit_media(params):
             print(f"Expected output file was not found: {temp_output_file}")
 
 
+# TODO: save it with name given from form
 def extract_frames_from_video(video_path, anim_id, name):
     """Converts mp4 files to png."""
+
     output_path = os.path.join(settings.MEDIA_ROOT, str(anim_id))
 
     # Ensure output directory exists
@@ -98,7 +102,7 @@ def extract_frames_from_video(video_path, anim_id, name):
         "-i",
         video_path,
         "-r",
-        "1",  # Adjust the frame rate as needed
+        "30",  # TODO: get framerate from the form instead. Also scale
         file_name,
     ]
 
@@ -125,7 +129,7 @@ def download_and_trim_youtube_video(request, url, start_time, end_time, output_n
     temp_video_path = os.path.join(settings.TEMP_DIR, f"{uuid.uuid4()}.mp4")
 
     # Download the video to a temporary location
-    ydl_opts = {"format": "best", "outtmpl": temp_video_path, "verbose": True}
+    ydl_opts = {"format": "best", "outtmpl": temp_video_path, "verbose": False}
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
 
@@ -152,6 +156,7 @@ def download_and_trim_youtube_video(request, url, start_time, end_time, output_n
         raise FileNotFoundError("Trimmed video file not found.")
 
     def file_stream():
+        """Clean up, after yielding the file."""
         with open(trimmed_video_path, "rb") as f:
             yield from f
 
@@ -162,9 +167,6 @@ def download_and_trim_youtube_video(request, url, start_time, end_time, output_n
     response = StreamingHttpResponse(file_stream(), content_type="video/mp4")
     response["Content-Disposition"] = f'attachment; filename="{output_name}.mp4"'
     return response
-
-
-import django_rq
 
 
 def convert_mp4_to_mp3(music_file, output_name):
@@ -182,6 +184,7 @@ def convert_mp4_to_mp3(music_file, output_name):
 # TODO: probably save it with uuid instead.
 def _convert_mp4_to_mp3_task(music_file, output_name):
     """Converts file to mp3."""
+
     # Temporary path for the uploaded video
     temp_video_path = os.path.join(settings.TEMP_DIR, f"{uuid.uuid4()}.mp4")
 
@@ -209,8 +212,7 @@ def _convert_mp4_to_mp3_task(music_file, output_name):
     # Ensure the converted file exists
     if not os.path.exists(converted_audio_path):
         raise FileNotFoundError("Converted audio file not found.")
-
-    # Optionally, delete the temporary uploaded video
+    
     os.remove(temp_video_path)
 
     # Return the path of the converted audio file for later use

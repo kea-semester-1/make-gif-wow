@@ -10,6 +10,8 @@ FORMAT_CHOICES = [
 
 
 class AnimationForm(forms.ModelForm):
+    """Form for creating animation."""
+
     framerate = forms.IntegerField()
     scale = forms.IntegerField()
     select_type_from = forms.ChoiceField(
@@ -25,13 +27,16 @@ class AnimationForm(forms.ModelForm):
 
 
 class YouTubeDownloadForm(forms.Form):
+    """Form for downloading video from youtube."""
+
     youtube_url = forms.URLField(label="YouTube URL", required=True)
     start_time = forms.CharField(label="Start Time (HH:MM:SS)", required=True)
     end_time = forms.CharField(label="End Time (HH:MM:SS)", required=True)
     video_name = forms.CharField(label="Video name", required=True)
 
 
-
 class MusicDownloadForm(forms.Form):
+    """Form for creating mp3 from an mp4."""
+
     music_file_name = forms.CharField(label="Music name", required=True)
     music_file = forms.FileField(label="Upload MP4 File", required=True)
